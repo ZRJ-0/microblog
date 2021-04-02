@@ -1,4 +1,5 @@
 <html>
+<!--current_user.is_anonymous 表达式将只在用户 没有登录时为True-->
 <head>
 		{% if title %}
 			<title>{{ title }} - Microblog</title>
@@ -7,7 +8,16 @@
 		{% endif %}
 	</head>
 	<body>
-		<div>Microblog:<a href="/index" style="margin: 0 20px 0 20px;">Home</a><a href="/login">Login</a></div>
+		<div>
+			Microblog:
+			<a href="{{url_for('index')}}" style="margin: 0 20px 0 20px;">Home</a>
+			{% if current_user.is_anonymous %}
+			<a href="{{url_for('login')}}">Login</a>
+			{% else %}
+			<a href="{{url_for('logout')}}">Logout</a>
+			{% endif %}
+
+		</div>
 		<hr>
 		{% with messages = get_flashed_messages() %}
 		{% if messages %}

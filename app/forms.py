@@ -1,9 +1,12 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  10:41
 
-from flask_wtf import FlaskForm
+from flask_wtf import FlaskForm, form
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, EqualTo, Email, ValidationError
+
+from app.models import User
+
 
 class LoginForm(FlaskForm):
     username = StringField(label='Username', validators=[DataRequired()])
@@ -11,4 +14,25 @@ class LoginForm(FlaskForm):
     remember_me = BooleanField(label='Remember Me')
     submit = SubmitField(label='登录')
 
+
+class RegistrationForm(FlaskForm):
+    username = StringField(label='Username', validators=[DataRequired()])
+    # Email() 确保用户在此字段中键入的内容与电子邮件地址的结构相匹配（省了正则去匹配这是否为一个邮箱地址）
+    email = StringField(label='Email', validators=[DataRequired(), Email()])
+    password = PasswordField(label='Password', validators=[DataRequired()])
+    # EqualTo 将确保其值与第一个密码字段的值相同   EqualTo('password')里面一定要加上''
+    password2 = PasswordField(label='Repeat Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField(label='注册')
+
+    # 这俩个方法会发出数据库查询 如果存在查询结果 则通过触发验证错误ValidationError
+    # 将在字段傍边显示包含此异常的消息让用户查看
+    def validate_username(self, username=None):
+        user = User.query.filter_by(username=username.data).first()
+        if user is not None:
+            raise ValidationError('Please use a different username!')
+
+    def validate_email(self, email=None):
+        user = User.query.filter_by(email=email.data).first()
+        if user is not None:
+            raise ValidationError('Please use a different email address!')
 
