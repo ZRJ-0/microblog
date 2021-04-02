@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+<!--	{% with p = posts %}      这种形式也是可以的  可以用with进行赋值操作
+	{% for post in p %}
+		<div><p>{{ post.author.username }} says: <b>{{ post.body }}</b></p></div>
+	{% endfor %}
+	{% endwith %}
+-->
+{% block content %}
+	<h1>Hello,{% if not user %}Stranger{% else %}{{user}}{% endif %}!</h1>
+	{% for post in posts %}
+		<div><p>{{ post.author.username }} says: <b>{{ post.body }}</b></p></div>
+	{% endfor %}
+{% endblock %}
