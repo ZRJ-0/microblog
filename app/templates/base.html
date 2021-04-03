@@ -1,34 +1,40 @@
 <html>
 <!--current_user.is_anonymous 表达式将只在用户 没有登录时为True-->
 <head>
-		{% if title %}
-			<title>{{ title }} - Microblog</title>
+	{% if title %}
+		<title>{{ title }} - Microblog</title>
+	{% else %}
+		<title>Welcome to Microblog</title>
+	{% endif %}
+<style>
+	a{
+		margin: 0 20px 0 20px;
+	}
+</style>
+</head>
+<body>
+	<div>
+		Microblog:
+		<a href="{{url_for('index')}}">Home</a>
+		{% if current_user.is_anonymous %}
+		<a href="{{url_for('login')}}">Login</a>
 		{% else %}
-			<title>Welcome to Microblog</title>
+		<a href="{{url_for('user', username=current_user.username)}}">Profile</a>
+		<a href="{{url_for('logout')}}">Logout</a>
 		{% endif %}
-	</head>
-	<body>
-		<div>
-			Microblog:
-			<a href="{{url_for('index')}}" style="margin: 0 20px 0 20px;">Home</a>
-			{% if current_user.is_anonymous %}
-			<a href="{{url_for('login')}}">Login</a>
-			{% else %}
-			<a href="{{url_for('logout')}}">Logout</a>
-			{% endif %}
 
-		</div>
-		<hr>
-		{% with messages = get_flashed_messages() %}
-		{% if messages %}
-		<ul>
-			{% for message in messages %}
-			<li>{{ message }}</li>
-			{% endfor %}
-		</ul>
-		{% endif %}
-		{% endwith %}
-		{% block content %}
-		{% endblock %}
-	</body>
+	</div>
+	<hr>
+	{% with messages = get_flashed_messages() %}
+	{% if messages %}
+	<ul>
+		{% for message in messages %}
+		<li>{{ message }}</li>
+		{% endfor %}
+	</ul>
+	{% endif %}
+	{% endwith %}
+	{% block content %}
+	{% endblock %}
+</body>
 </html>

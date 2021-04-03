@@ -1,5 +1,6 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  9:42
+from hashlib import md5
 
 from app import db, login
 from datetime import datetime
@@ -23,6 +24,9 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), index=True, nullable=False, unique=True)
     password_hash = db.Column(db.String(128))
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    # 每次修改数据库时，都必须生成数据库迁移
+    about_me = db.Column(db.String(140))
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         # return '<User {}>'.format(self.username)
@@ -34,6 +38,12 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # avatar() 返回用户头像的URL 并缩放到请求的大小 (以像素为单位)
+    def avatar(self, size):
+        digest = md5(self.email.lower().encode('UTF-8')).hexdigest()
+        return 'http://cn.gravatar.org/avatar/{}?d=identicon&s={}'.format(
+            digest, size)
 
 class Post(db.Model):
     __tablename__ = 'post'

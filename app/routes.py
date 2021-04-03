@@ -1,5 +1,6 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  10:57
+from datetime import datetime
 
 from flask import render_template, flash, url_for, session, request
 from flask_login import current_user, login_user, logout_user, login_required
@@ -7,9 +8,15 @@ from werkzeug.urls import url_parse
 from werkzeug.utils import redirect
 
 from app import app, db
-from app.forms import LoginForm, RegistrationForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm
 from app.models import User
 
+# 在用户向服务器发送请求时 为给定用户写入此字段的当前时间
+@app.before_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
 
 @app.route('/')
 @app.route('/index')
@@ -76,3 +83,32 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
 
+@app.route('/user/<username>')
+@login_required
+def user(username):
+    # 有结果的情况下它与first()完全一样 不过在没有结果的情况下 会自动将404 error发送回客户端
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = [
+        {'author': user, 'body': 'Test post #1'},
+        {'author': user, 'body': 'Test post #2'}
+    ]
+    return render_template('user.html',user=user,posts=posts)
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    # 如果validate_on_submit()返回True 将表单中的数据复制到用户对象中 然后将对象写入数据库
+    if form.validate_on_submit():
+        current_user.username = form.username.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+
+        flash('Your Changes Have Been Saved!')
+        # 也可以不重定向   在html加一个可以返回的链接
+        # return redirect(url_for('edit_profile'))
+    # 对初始化请求这将是GET 并对验证失败的提交将是POST 返回到edit_profile.html 页面
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.about_me.data = current_user.about_me
+    return render_template('edit_profile.html',title='Edit Profile', form=form)
