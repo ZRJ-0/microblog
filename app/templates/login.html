@@ -1,5 +1,7 @@
 {% extends "base.html" %}
-
+<!--novalidate 属性规定当提交表单时不对其进行验证 如果使用该属性 则表单不会验证表单的输入-->
+<!--form.hidden_tag() 模板参数将被替换为一个隐藏字段 用来是实现在配置中激活的 CSRF 保护-->
+<!--如果你已经激活了 CSRF 这个字段需要出现在你所有的表单中-->
 {% block content %}
     <h1>Sign In</h1>
     <form action="" method="post" novalidate>

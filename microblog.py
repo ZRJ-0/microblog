@@ -1,6 +1,7 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  9:48
 
+# 只要导入了app  就可以运行整个程序   因为app和其他的内容在__init__.py文件中都已经绑定过了
 from app import app, db
 from app.models import User, Post
 

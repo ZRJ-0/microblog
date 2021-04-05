@@ -32,11 +32,25 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Please use a different username!')
 
     def validate_email(self, email=None):
-        user = User.query.filter_by(email=email.data).first()
-        if user is not None:
+        Email = User.query.filter_by(email=email.data).first()
+        if Email is not None:
             raise ValidationError('Please use a different email address!')
 
 class EditProfileForm(FlaskForm):
     username = StringField(label='Username', validators=[DataRequired()])
     about_me = TextAreaField(label='About_Me', validators=[Length(min=0,max=140)])
     submit = SubmitField(label='提交')
+
+    def __init__(self, original_username, *args, **kwargs):
+        super(EditProfileForm, self).__init__(*args, **kwargs)
+        self.original_username = original_username
+
+    def validate_username(self, username):
+        if username.data != self.original_username:
+            user = User.query.filter_by(username=username.data).first()
+            if user is not None:
+                # 对于以及注册的用户名 不能让没登录的用户修改当亲前用户的个人信息
+                raise ValidationError('Please use a different username!')
+            else:
+                # 在用户名没有被注册时 不能允许用户用这个用户名进行提交数据
+                raise ValidationError('This username has not been registered!')

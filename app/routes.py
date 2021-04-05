@@ -1,6 +1,6 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  10:57
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import render_template, flash, url_for, session, request
 from flask_login import current_user, login_user, logout_user, login_required
@@ -11,12 +11,15 @@ from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm
 from app.models import User
 
+
 # 在用户向服务器发送请求时 为给定用户写入此字段的当前时间
 @app.before_request
 def before_request():
     if current_user.is_authenticated:
-        current_user.last_seen = datetime.utcnow()
+        # 加上8小时就是北京时间
+        current_user.last_seen = datetime.utcnow() + timedelta(hours=8)
         db.session.commit()
+
 
 @app.route('/')
 @app.route('/index')
@@ -28,17 +31,16 @@ def index():
             'author': {'username': 'John'},
             'body': 'Beautiful day in Portland!'
         },
-    {
-        'author': {'username': 'Susan'},
-        'body': 'The Avengers movie was so cool!'
-    }
+        {
+            'author': {'username': 'Susan'},
+            'body': 'The Avengers movie was so cool!'
+        }
     ]
     # user = session.get('user')
     return render_template('index.html', title='Home', posts=posts)
 
 
-
-@app.route('/login',methods=['GET','POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     # is_authenticated 检查用户是否登录
     if current_user.is_authenticated:
@@ -53,17 +55,20 @@ def login():
         # login_user()函数。这个函数将在登录时注册用户,这意味着用户导航的任何未来页面都将current_user变量设置为该用户
         # 重定向到 next 页面  如果第一次 访问其他页面的时候是需要登录的 会被强制到登录界面 当结束的时候，会回到之前操作的页面
         # 但是当开始访问的就是首页时，返回的next_page 会是空的   所以会是 next_page = url_for('index')重定向到首页
-        # 第三种情况 如果登录URL包含next设置为包含域名的完整URL的参数，则将用户重定向到/index页面 比如访问百度州二中完整的URL参数
+        # 第三种情况 如果登录URL包含next设置为包含域名的完整URL的参数(netloc(域名服务器))
+        # 则将用户重定向到/index页面 比如访问百度(www.baidu.com(完整的URL))就算是.netloc != ''
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('index')
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
 
+
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -83,6 +88,7 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
 
+
 @app.route('/user/<username>')
 @login_required
 def user(username):
@@ -92,12 +98,13 @@ def user(username):
         {'author': user, 'body': 'Test post #1'},
         {'author': user, 'body': 'Test post #2'}
     ]
-    return render_template('user.html',user=user,posts=posts)
+    return render_template('user.html', title='user', user=user, posts=posts)
+
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    form = EditProfileForm()
+    form = EditProfileForm(current_user.username)
     # 如果validate_on_submit()返回True 将表单中的数据复制到用户对象中 然后将对象写入数据库
     if form.validate_on_submit():
         current_user.username = form.username.data
@@ -111,4 +118,4 @@ def edit_profile():
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
-    return render_template('edit_profile.html',title='Edit Profile', form=form)
+    return render_template('edit_profile.html', title='Edit Profile', form=form)

@@ -1,6 +1,10 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  11:09
 
+# 这个文件初始化了你的应用并把所有其它的组件组合在一起
+import os, logging
+from logging.handlers import RotatingFileHandler
+
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -20,5 +24,17 @@ login = LoginManager(app)
 # 强制用户在查看应用程序的某些页面之前必须登录 如果未登录用户尝试查看受保护的页面
 # Flask-Login将自动将用户重定向到登录表单 并且仅在登录过程完成后重定向回用户想要查看的页面
 login.login_view = 'login'
+if not app.debug:
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+    file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240,
+                                       backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
 
-from app import routes, models #导入一个新模块models，它将定义数据库的结构，目前为止尚未编写
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('Microblog startup')
+
+from app import routes, models, errors #导入一个新模块models，它将定义数据库的结构，目前为止尚未编写
