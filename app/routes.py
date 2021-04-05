@@ -8,8 +8,8 @@ from werkzeug.urls import url_parse
 from werkzeug.utils import redirect
 
 from app import app, db
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm
-from app.models import User
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm
+from app.models import User, Post
 
 
 # 在用户向服务器发送请求时 为给定用户写入此字段的当前时间
@@ -21,24 +21,50 @@ def before_request():
         db.session.commit()
 
 
-@app.route('/')
-@app.route('/index')
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 # 将这个装饰器添加到来自Flask的@app.route的装饰器下方时 这个函数将被收到保护 并且不允许未经过身份验证的用户
 @login_required
 def index():
-    posts = [  # 创建一个列表：帖子。里面元素是两个字典，每个字典里元素还是字典，分别作者、帖子内容。
-        {
-            'author': {'username': 'John'},
-            'body': 'Beautiful day in Portland!'
-        },
-        {
-            'author': {'username': 'Susan'},
-            'body': 'The Avengers movie was so cool!'
-        }
-    ]
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(body=form.post.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash('Your Post is now live!')
+        return redirect('index')
+    # posts = [  # 创建一个列表：帖子。里面元素是两个字典，每个字典里元素还是字典，分别作者、帖子内容。
+    #     {
+    #         'author': {'username': 'John'},
+    #         'body': 'Beautiful day in Portland!'
+    #     },
+    #     {
+    #         'author': {'username': 'Susan'},
+    #         'body': 'The Avengers movie was so cool!'
+    #     }
+    # ]
     # user = session.get('user')
-    return render_template('index.html', title='Home', posts=posts)
+    # followed_posts()方法 它返回给定用户想看的帖子的查询  页面上存在您的言论和你关注者的言论
+    # 没有指定页码就是 1 指定了就是对应的页码
+    page = request.args.get('page', 1, type=int)
+    # paginate的三个参数: 1、页码 从1开始 2、每页的项目数 3、错误标志
+    # 若为True 当请求超出范围的页面时 404 错误将自动返回给客户端 若为False 超出范围的页面将返回一个空列表
+    posts = current_user.followed_posts().paginate(page, app.config['POSTS_PER_PAGE'], False)
+    # posts.items type:list -->[<Post: 333>, <Post: 测试中！ >, <Post: 2222222>]
+    next_url = url_for('index', page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
+    return render_template('index.html', title='Home', posts=posts.items, form=form, next_url=next_url, prev_url=prev_url)
 
+@app.route('/explore')
+@login_required
+def explore():
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
+    # has_next 如果当前页面后面至少还有一页 则为True    next_num 下一页的页码
+    # has_prev 如果当前页面之前至少还有一页 则为True    prev_num 上一页的页码
+    next_url = url_for('explore', page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('explore', page=posts.prev_num) if posts.has_prev else None
+    return render_template('index.html', title='Explore', posts=posts.items, next_url=next_url, prev_url=prev_url)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -95,11 +121,15 @@ def user(username):
     form = EmptyForm()
     # 有结果的情况下它与first()完全一样 不过在没有结果的情况下 会自动将404 error发送回客户端
     user = User.query.filter_by(username=username).first_or_404()
-    posts = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
-    return render_template('user.html', title='user', user=user, posts=posts, form=form)
+    # posts = [
+    #     {'author': user, 'body': 'Test post #1'},
+    #     {'author': user, 'body': 'Test post #2'}
+    # ]
+    page = request.args.get('page', 1, type=int)
+    posts = user.posts.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
+    next_url = url_for('user', username=user.username, page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('user', username=user.username, page=posts.prev_num) if posts.has_prev else None
+    return render_template('user.html', title='user', user=user, posts=posts.items, next_url=next_url, prev_url=prev_url)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
