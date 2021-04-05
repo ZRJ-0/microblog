@@ -36,9 +36,10 @@ class RegistrationForm(FlaskForm):
         if Email is not None:
             raise ValidationError('Please use a different email address!')
 
+
 class EditProfileForm(FlaskForm):
     username = StringField(label='Username', validators=[DataRequired()])
-    about_me = TextAreaField(label='About_Me', validators=[Length(min=0,max=140)])
+    about_me = TextAreaField(label='About_Me', validators=[Length(min=0, max=140)])
     submit = SubmitField(label='提交')
 
     def __init__(self, original_username, *args, **kwargs):
@@ -54,3 +55,7 @@ class EditProfileForm(FlaskForm):
             else:
                 # 在用户名没有被注册时 不能允许用户用这个用户名进行提交数据
                 raise ValidationError('This username has not been registered!')
+
+
+class EmptyForm(FlaskForm):
+    submit = SubmitField('Submit')
