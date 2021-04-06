@@ -19,7 +19,7 @@ from app.models import User, Post
 def before_request():
     if current_user.is_authenticated:
         # 加上8小时就是北京时间
-        current_user.last_seen = datetime.utcnow() + timedelta(hours=8)
+        current_user.last_seen = datetime.utcnow()  # + timedelta(hours=8)
         db.session.commit()
 
 
