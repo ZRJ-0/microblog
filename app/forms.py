@@ -1,7 +1,7 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  10:41
 
-from flask_wtf import FlaskForm, form
+from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, EqualTo, Email, ValidationError, Length
 
@@ -12,7 +12,7 @@ class LoginForm(FlaskForm):
     username = StringField(label='Username', validators=[DataRequired()])
     password = PasswordField(label='Password', validators=[DataRequired()])
     remember_me = BooleanField(label='Remember Me')
-    submit = SubmitField(label='登录')
+    submit = SubmitField(label='Login')
 
 
 class RegistrationForm(FlaskForm):
@@ -22,7 +22,7 @@ class RegistrationForm(FlaskForm):
     password = PasswordField(label='Password', validators=[DataRequired()])
     # EqualTo 将确保其值与第一个密码字段的值相同   EqualTo('password')里面一定要加上''
     password2 = PasswordField(label='Repeat Password', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField(label='注册')
+    submit = SubmitField(label='Register')
 
     # 这俩个方法会发出数据库查询 如果存在查询结果 则通过触发验证错误ValidationError
     # 将在字段傍边显示包含此异常的消息让用户查看
@@ -51,7 +51,7 @@ class ResetPasswordForm(FlaskForm):
 class EditProfileForm(FlaskForm):
     username = StringField(label='Username', validators=[DataRequired()])
     about_me = TextAreaField(label='About_Me', validators=[Length(min=0, max=140)])
-    submit = SubmitField(label='提交')
+    submit = SubmitField(label='Submit')
 
     def __init__(self, original_username, *args, **kwargs):
         super(EditProfileForm, self).__init__(*args, **kwargs)

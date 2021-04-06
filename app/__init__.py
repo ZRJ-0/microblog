@@ -6,6 +6,7 @@ import os, logging
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask
+from flask_bootstrap import Bootstrap
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -26,6 +27,8 @@ login = LoginManager(app)
 # Flask-Login将自动将用户重定向到登录表单 并且仅在登录过程完成后重定向回用户想要查看的页面
 login.login_view = 'login'
 mail = Mail(app)
+bootstrap = Bootstrap(app)
+
 if not app.debug:
     if not os.path.exists('logs'):
         os.mkdir('logs')
