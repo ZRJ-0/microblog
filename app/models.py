@@ -1,8 +1,11 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/1  9:42
 from hashlib import md5
+from time import time
 
-from app import db, login
+import jwt
+
+from app import db, login, app
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -83,6 +86,27 @@ class User(UserMixin, db.Model):
         # 将上下两张表合并  根据时间倒序return
         return followed.union(own).order_by(Post.timestamp.desc())
 
+    def get_reset_password_token(self, expires_in=600):
+        # 三个参数如下:  (如果别人记住了你邮箱发送的token, 用他的电脑登录这个网址,就会因为载荷(你app配置文件中的密钥)不一致,而导致解密失败)
+        # 1.header(头部):头部用于描述关于该JWT的最基本的信息例如其类型以及签名所用的算法等 JSON内容要经Base64编码生成字符串成为Header。
+        # 2. payload(载荷):可以简单的理解为我们自己要传输的数据
+        # 3. signature(签名)
+        return jwt.encode(
+            {'reset_password': self.id, 'exp': time() + expires_in},
+            app.config['SECRET_KEY'], algorithm='HS256')    # .decode('utf-8')
+        # python3中只有unicode str 所以把decode方法去掉了 python3环境中 jwt.encode已经是unicodestr了 不用decode
+        # decode要求解码的是Byte字节类型的
+    @staticmethod
+    def verify_reset_password_token(token):
+        try:
+            # 若别的服务器用相同的地址访问 由于app.config['SECRET_KEY']不一致而导致id和我们的id不一致，就无法进行更改密码
+            id = jwt.decode(token, app.config['SECRET_KEY'],
+                            algorithms=['HS256'])['reset_password']
+                # 成功的话返回的是一个字典 {'reset_password': 3}
+                # ['reset_password']就是对值进行提取
+        except:
+            return
+        return User.query.get(id)
 
 class Post(db.Model):
     __tablename__ = 'post'
