@@ -1,11 +1,12 @@
 # 开发者: 朱仁俊
-# 开发时间: 2021/4/1  11:09
+# 开发时间: 2021/4/babel.cfg  11:09
 
 # 这个文件初始化了你的应用并把所有其它的组件组合在一起
 import os, logging
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask
+from flask import Flask, request
+from flask_babel import Babel, lazy_gettext as _l
 from flask_bootstrap import Bootstrap
 from flask_mail import Mail
 from flask_migrate import Migrate
@@ -27,9 +28,11 @@ login = LoginManager(app)
 # 强制用户在查看应用程序的某些页面之前必须登录 如果未登录用户尝试查看受保护的页面
 # Flask-Login将自动将用户重定向到登录表单 并且仅在登录过程完成后重定向回用户想要查看的页面
 login.login_view = 'login'
+login.login_message = _l('Please log in to access this page.')
 mail = Mail(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+babel = Babel(app)
 
 if not app.debug:
     if not os.path.exists('logs'):
@@ -44,4 +47,8 @@ if not app.debug:
     app.logger.setLevel(logging.INFO)
     app.logger.info('Microblog startup')
 
+@babel.localeselector
+def get_local():
+    return request.accept_languages.best_match(app.config['LANGUAGES'])
+    # return 'zh_cn'    # 因为浏览器默认了  所以无需更改
 from app import routes, models, errors  # 导入一个新模块models，它将定义数据库的结构，目前为止尚未编写

@@ -1,5 +1,5 @@
 # 开发者: 朱仁俊
-# 开发时间: 2021/4/1  9:42
+# 开发时间: 2021/4/babel.cfg  9:42
 from hashlib import md5
 from time import time
 
@@ -88,7 +88,7 @@ class User(UserMixin, db.Model):
 
     def get_reset_password_token(self, expires_in=600):
         # 三个参数如下:  (如果别人记住了你邮箱发送的token, 用他的电脑登录这个网址,就会因为载荷(你app配置文件中的密钥)不一致,而导致解密失败)
-        # 1.header(头部):头部用于描述关于该JWT的最基本的信息例如其类型以及签名所用的算法等 JSON内容要经Base64编码生成字符串成为Header。
+        # babel.cfg.header(头部):头部用于描述关于该JWT的最基本的信息例如其类型以及签名所用的算法等 JSON内容要经Base64编码生成字符串成为Header。
         # 2. payload(载荷):可以简单的理解为我们自己要传输的数据
         # 3. signature(签名)
         return jwt.encode(

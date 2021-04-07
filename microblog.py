@@ -1,8 +1,8 @@
 # 开发者: 朱仁俊
-# 开发时间: 2021/4/1  9:48
+# 开发时间: 2021/4/babel.cfg  9:48
 
 # 只要导入了app  就可以运行整个程序   因为app和其他的内容在__init__.py文件中都已经绑定过了
-from app import app, db
+from app import app, db, cli
 from app.models import User, Post
 
 # 此装饰器注册了一个作为shell 上下文功能的函数
