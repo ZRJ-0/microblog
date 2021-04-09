@@ -2,18 +2,20 @@
 # 开发时间: 2021/4/9  11:12
 
 import json, random, hashlib, http.client
+
+from flask import current_app
 from flask_babel import _
-from app import app
+# from app import app
 from urllib import parse
 
 
 def translate(q, fromLang, toLang):
-    if 'APPID' not in app.config or not app.config['APPID']:
+    if 'APPID' not in current_app.config or not current_app.config['APPID']:
         return _('Error:the translation service is not configured.')
-    if 'MS_TRANSLATOR_KEY' not in app.config or not app.config['MS_TRANSLATOR_KEY']:
+    if 'MS_TRANSLATOR_KEY' not in current_app.config or not current_app.config['MS_TRANSLATOR_KEY']:
         return _('Error:the translation service is not configured.')
-    appid = app.config['APPID']
-    secretKey = app.config['MS_TRANSLATOR_KEY']
+    appid = current_app.config['APPID']
+    secretKey = current_app.config['MS_TRANSLATOR_KEY']
 
     httpClient = None
     myurl = '/api/trans/vip/translate'

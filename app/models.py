@@ -4,8 +4,9 @@ from hashlib import md5
 from time import time
 
 import jwt
+from flask import current_app
 
-from app import db, login, app
+from app import db, login
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -93,14 +94,14 @@ class User(UserMixin, db.Model):
         # 3. signature(签名)
         return jwt.encode(
             {'reset_password': self.id, 'exp': time() + expires_in},
-            app.config['SECRET_KEY'], algorithm='HS256')    # .decode('utf-8')
+            current_app.config['SECRET_KEY'], algorithm='HS256')    # .decode('utf-8')
         # python3中只有unicode str 所以把decode方法去掉了 python3环境中 jwt.encode已经是unicodestr了 不用decode
         # decode要求解码的是Byte字节类型的
     @staticmethod
     def verify_reset_password_token(token):
         try:
             # 若别的服务器用相同的地址访问 由于app.config['SECRET_KEY']不一致而导致id和我们的id不一致，就无法进行更改密码
-            id = jwt.decode(token, app.config['SECRET_KEY'],
+            id = jwt.decode(token, current_app.config['SECRET_KEY'],
                             algorithms=['HS256'])['reset_password']
                 # 成功的话返回的是一个字典 {'reset_password': 3}
                 # ['reset_password']就是对值进行提取

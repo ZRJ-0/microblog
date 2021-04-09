@@ -2,10 +2,10 @@
 # 开发时间: 2021/4/babel.cfg  9:50
 import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))  # 获取当前.py文件的绝对路径
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(basedir, 'microblog.env'))
+basedir = os.path.abspath(os.path.dirname(__file__))    # 获取当前.py文件的绝对路径
+load_dotenv(os.path.join(basedir, '.env'))
 
 
 class Config:

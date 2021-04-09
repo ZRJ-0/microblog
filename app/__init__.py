@@ -1,54 +1,70 @@
 # 开发者: 朱仁俊
 # 开发时间: 2021/4/babel.cfg  11:09
 
-# 这个文件初始化了你的应用并把所有其它的组件组合在一起
-import os, logging
-from logging.handlers import RotatingFileHandler
+import logging
+from logging.handlers import SMTPHandler, RotatingFileHandler
+import os
 
 from flask import Flask, request
-from flask_babel import Babel, lazy_gettext as _l
-from flask_bootstrap import Bootstrap
-from flask_mail import Mail
+from flask_sqlalchemy import SQLAlchemy  # 从包中导入类
 from flask_migrate import Migrate
-from flask_moment import Moment
-from flask_sqlalchemy import SQLAlchemy
-# Flask-Login通过在Flask的用户会话中存储其唯一的标识符来跟踪登录用户
-# 这个用户会话是分配给连接到应用程序的每个用户的存储空间。
-# 每次登录用户导航到新页面时，Flask-Login都会从会话中检索用户的ID，然后将用户加载到内存中。
 from flask_login import LoginManager
+from flask_mail import Mail
+from flask_bootstrap import Bootstrap
+from flask_moment import Moment
+from flask_babel import Babel, lazy_gettext as _l
 from Config import Config  # 从config模块导入Config类
+from flask import current_app
 
-app = Flask(__name__)
-app.config.from_object(Config)
-
-db = SQLAlchemy(app)  # 数据库对象
-migrate = Migrate(app, db)  # 迁移数据库对象
-
-login = LoginManager(app)
-# 强制用户在查看应用程序的某些页面之前必须登录 如果未登录用户尝试查看受保护的页面
-# Flask-Login将自动将用户重定向到登录表单 并且仅在登录过程完成后重定向回用户想要查看的页面
-login.login_view = 'login'
+db = SQLAlchemy()
+migrate = Migrate()
+login = LoginManager()  # 初始化Flask-Login
+login.login_view = 'auth.login'
 login.login_message = _l('Please log in to access this page.')
-mail = Mail(app)
-bootstrap = Bootstrap(app)
-moment = Moment(app)
-babel = Babel(app)
+mail = Mail()
+bootstrap = Bootstrap()
+moment = Moment()
+babel = Babel()
 
-if not app.debug:
-    if not os.path.exists('logs'):
-        os.mkdir('logs')
-    file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240,
-                                       backupCount=10)
-    file_handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-    file_handler.setLevel(logging.INFO)
-    app.logger.addHandler(file_handler)
 
-    app.logger.setLevel(logging.INFO)
-    app.logger.info('Microblog startup')
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login.init_app(app)
+    mail.init_app(app)
+    bootstrap.init_app(app)
+    moment.init_app(app)
+    babel.init_app(app)
+
+    from app.errors import bp as errors_bp
+    app.register_blueprint(errors_bp)
+
+    from app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+
+    from app.main import bp as main_bp
+    app.register_blueprint(main_bp)
+
+    if not app.debug and not app.testing:
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240, backupCount=10)
+        file_handler.setFormatter(
+            logging.Formatter('%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('Microblog startup')
+    return app
+
 
 @babel.localeselector
-def get_local():
-    return request.accept_languages.best_match(app.config['LANGUAGES'])
-    # return 'zh_cn'    # 因为浏览器默认了  所以无需更改
-from app import routes, models, errors  # 导入一个新模块models，它将定义数据库的结构，目前为止尚未编写
+def get_locale():
+    return request.accept_languages.best_match(current_app.config['LANGUAGES'])
+
+
+from app import models  # 在此移除errors、routes的导入
