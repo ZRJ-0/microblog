@@ -2,8 +2,9 @@
 # 开发时间: 2021/4/babel.cfg  10:57
 from datetime import datetime, timedelta
 
-from flask import render_template, flash, url_for, request, g
+from flask import render_template, flash, url_for, request, g, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
+from guess_language import guess_language
 from werkzeug.urls import url_parse
 from werkzeug.utils import redirect
 
@@ -14,15 +15,26 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, P
 from app.models import User, Post
 from flask_babel import _, get_locale
 
+
 # 在用户向服务器发送请求时 为给定用户写入此字段的当前时间
+from app.translate import translate
+
+
 @app.before_request
 def before_request():
-    # g.locale = 'zh_CN'
-    g.locale = 'zh_CN' if str(get_locale()).startswith('zh') else str(get_locale())
     if current_user.is_authenticated:
         # 加上8小时就是北京时间
         current_user.last_seen = datetime.utcnow()  # + timedelta(hours=8)
         db.session.commit()
+    # g.locale = str(get_locale())
+    g.locale = 'zh' if str(get_locale()).startswith('zh') else str(get_locale())
+
+
+@app.route('/translate', methods=['POST'])
+@login_required
+def translate_text():
+    return jsonify(
+        {'text': translate(request.form['text'], request.form['source_language'], request.form['dest_language'])})
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -32,7 +44,12 @@ def before_request():
 def index():
     form = PostForm()
     if form.validate_on_submit():
-        post = Post(body=form.post.data, author=current_user)
+        language = guess_language(form.post.data)
+        if language == 'UNKNOWN' or len(language) > 5:
+            language = 'en'  # 因为guess_language对一些短字符不识别 所以将都识别不了的用en代替
+            # language = ''
+        post = Post(body=form.post.data, author=current_user,
+                    language=language)
         db.session.add(post)
         db.session.commit()
         flash(_('Your Post is now live!'))
@@ -57,7 +74,9 @@ def index():
     # posts.items type:list -->[<Post: 333>, <Post: 测试中！ >, <Post: 2222222>]
     next_url = url_for('index', page=posts.next_num) if posts.has_next else None
     prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
-    return render_template('index.html', title='Home', posts=posts.items, form=form, next_url=next_url, prev_url=prev_url)
+    return render_template('index.html', title='Home', posts=posts.items, form=form, next_url=next_url,
+                           prev_url=prev_url)
+
 
 @app.route('/explore')
 @login_required
@@ -69,6 +88,7 @@ def explore():
     next_url = url_for('explore', page=posts.next_num) if posts.has_next else None
     prev_url = url_for('explore', page=posts.prev_num) if posts.has_prev else None
     return render_template('index.html', title='Explore', posts=posts.items, next_url=next_url, prev_url=prev_url)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -118,6 +138,7 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
 
+
 @app.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
     if current_user.is_authenticated:
@@ -131,6 +152,7 @@ def reset_password_request():
         flash(_('Check your email for the instructions to reset your password'))
         return redirect(url_for('login'))
     return render_template('reset_password_request.html', title='Reset Password', form=form)
+
 
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
@@ -147,6 +169,7 @@ def reset_password(token):
         return redirect(url_for('login'))
     return render_template('reset_password.html', form=form)
 
+
 @app.route('/user/<username>')
 @login_required
 def user(username):
@@ -161,7 +184,8 @@ def user(username):
     posts = user.posts.order_by(Post.timestamp.desc()).paginate(page, app.config['POSTS_PER_PAGE'], False)
     next_url = url_for('user', username=user.username, page=posts.next_num) if posts.has_next else None
     prev_url = url_for('user', username=user.username, page=posts.prev_num) if posts.has_prev else None
-    return render_template('user.html', title='user', user=user, posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template('user.html', title='user', user=user, posts=posts.items, next_url=next_url,
+                           prev_url=prev_url)
 
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
@@ -183,41 +207,34 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile', form=form)
 
-@app.route('/follow/<username>', methods=['POST'])
+
+@app.route('/follow/<username>')    # 这里没有了form表单提交所以应该是GET方法传入username
 @login_required
 def follow(username):
-    form = EmptyForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=username).first()
-        if user is None:
-            flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('index'))
-        if user == current_user:
-            flash(_('You cannot follow yourself!'))
-            return redirect(url_for('user', username=username))
-        current_user.follow(user)
-        db.session.commit()
-        flash(_('You are following %(username)s!', username=username))
-        return redirect(url_for('user', username=username))
-    else:
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash(_('User %(username)s not found.', username=username))
         return redirect(url_for('index'))
+    if user == current_user:
+        flash(_('You cannot follow yourself!'))
+        return redirect(url_for('user', username=username))
+    current_user.follow(user)
+    db.session.commit()
+    flash(_('You are following %(username)s!', username=username))
+    return redirect(url_for('user', username=username))
 
 
-@app.route('/unfollow/<username>', methods=['POST'])
+@app.route('/unfollow/<username>')
 @login_required
 def unfollow(username):
-    form = EmptyForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=username).first()
-        if user is None:
-            flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('index'))
-        if user == current_user:
-            flash(_('You cannot unfollow yourself!'))
-            return redirect(url_for('user', username=username))
-        current_user.unfollow(user)
-        db.session.commit()
-        flash(_('You are not following %(username)s.', username=username))
-        return redirect(url_for('user', username=username))
-    else:
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash(_('User %(username)s not found.', username=username))
         return redirect(url_for('index'))
+    if user == current_user:
+        flash(_('You cannot unfollow yourself!'))
+        return redirect(url_for('user', username=username))
+    current_user.unfollow(user)
+    db.session.commit()
+    flash(_('You are not following %(username)s.', username=username))
+    return redirect(url_for('user', username=username))

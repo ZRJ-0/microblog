@@ -12,6 +12,23 @@
 	{{ super() }}
 	{{ moment.include_moment() }}
 	{{ moment.lang(g.locale) }}
+
+	<script>
+		function translate(sourceElem, destElem, sourceLang, destLang) {
+			$(destElem).html('<img src="{{ url_for('static', filename='loading.gif') }}">');
+<!-- 将POST请求发送到在上一节中定义的 /translate URL $.post()函数 这个函数以类似于浏览器提交Web表单的格式向服务器提交数据 这很方便 -->
+<!-- 这允许Flask将这个数据合并到request.form字段中 参数$.post()是两个 首先是发送请求的URL 然后是服务器期望的三个数据项(或者在JavaScript中调用的对象)-->
+			$.post('/translate', {
+				text:$(sourceElem).text(),
+				source_language:sourceLang,
+				dest_language:destLang
+			}).done(function(response) {
+				$(destElem).text(response['text'])
+			}).fail(function() {
+				$(destElem).text("{{ _('Error:Could not contact server.') }}");
+			});
+		}
+	</script>
 {% endblock %}
 
 {% block navbar %}

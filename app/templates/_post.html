@@ -11,9 +11,20 @@
                     {{ post.author.username }}
                 </a>
             {% endset %}
-            {{ _('%(username)s said %(when)s', username=user_link, when=moment(post.timestamp).fromNow()) }}
+           {{ _('%(username)s said %(when)s', username=user_link, when=moment(post.timestamp).fromNow()) }}
             <br>
-            {{ post.body }}
+
+            <span id="post{{ post.id }}">{{ post.body }}</span>
+
+            {% if post.language and post.language != g.locale %}
+                <br><br>
+<!-- 第一步:点击翻译的链接 第二步: $.post('/translate'向这个视图函数发送请求 并得到返回值 第三步:.done(function(response) {
+$(destElem).text(response['text'])接受回应 第四步: destElem就是下方的 #translation{{ post.id }} 将返回的内容显示在这个链接的位置上-->
+                <span id="translation{{ post.id }}">
+                                                                                        <!--{{ post.language }}使用识别的语言,这里替换为auto让其自动检测语言  也可以是en(只是别英语)-->
+                    <a href="javascript:translate('#post{{ post.id }}', '#translation{{ post.id }}', 'auto', '{{ g.locale }}');">{{ _('Translate') }}</a>
+                </span>
+            {% endif %}
         </td>
     </tr>
 </table>

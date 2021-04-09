@@ -30,3 +30,5 @@ class Config:
     MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'false').lower() in ['true', 'on', 'babel.cfg']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    APPID = os.environ.get('APPID')
+    MS_TRANSLATOR_KEY = os.environ.get('MS_TRANSLATOR_KEY')
